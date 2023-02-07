@@ -1,0 +1,1 @@
+- Add functionality to grabbing information with BeautifulSoup from indeed, linkedin, etc.
