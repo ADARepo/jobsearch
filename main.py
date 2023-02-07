@@ -1,6 +1,8 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import pyqtSlot
+from bs4 import BeautifulSoup
+import requests
 import sys
 
 states = ["Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", 
@@ -57,6 +59,7 @@ class Window(QMainWindow):
         self.combo.setFont(QFont('Times', 12))
         self.combo.resize(200, 30)
 
+        # Submit button. Will handle parsing job sites at this point.
         self.submitButton = QPushButton(self)
         self.submitButton.move(int(width / 2 - 120), int(height / 2 + 50))
         self.submitButton.setText("Submit")
@@ -64,16 +67,10 @@ class Window(QMainWindow):
         self.submitButton.setFont(QFont('Times', 10, QFont.Bold))
         self.submitButton.clicked.connect(self.on_click)
 
-        # # Range
-        # self.label3 = QLabel("Range (miles)", self)
-        # self.label3.move(int(width / 2 + 200), int(height / 2 - 100))
-        # self.label3.setFont(QFont('Times', 12, QFont.Bold))
-        # self.label3.resize(150, 80)
-
-        # # Combo Box for range.
-
+        # Show the Frame/Window.
         self.show()
 
+    # Submit button was clicked, check to see if fields have valid entries. Checking empty string for now.
     @pyqtSlot()
     def on_click(self):
         jobEntry = self.jobBox.text()
@@ -85,6 +82,28 @@ class Window(QMainWindow):
             msg.setWindowTitle("Missing entries.")
             msg.setText("Please enter a city and job keyword.")
             msg.exec_()
+        else:
+            stateEntry = self.combo.currentText()
+            jobTerms = jobEntry.split()
+
+            print(len(jobTerms))
+            print(jobTerms[1])
+
+            # Base url for indeed. Need to parse out the job entry before appending to url string.
+            indeedUrl = "https://www.indeed.com/jobs?q=" + jobTerms[0]
+
+            for i in range(1, len(jobTerms)):
+                indeedUrl += '+' + jobTerms[i]
+            
+            # Appending final params for city and state before making a GET request.
+            indeedUrl += "&l=" + cityEntry + "+" + stateEntry
+
+            html = requests.get(indeedUrl)
+
+            print(html.text)
+
+            # With the state, city, and job, we can now use BeautifulSoup to grab the data from job sites.
+
 
 
 
