@@ -2,9 +2,12 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import pyqtSlot
 from bs4 import BeautifulSoup
-import requests
-import sys
+import requests, sys, httpx, configparser
 
+# Testing purposes only to avoid scraping blocks.
+from scrapfly import ScrapflyClient, ScrapeConfig
+
+# State listings. Might consider default state being dependent on current location or converting to dictionary with acronyms.
 states = ["Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", 
         "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", 
         "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", 
@@ -12,10 +15,15 @@ states = ["Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", 
         "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", 
         "West Virginia", "Wisconsin", "Wyoming"]
 
+# Reading in the API key for Scrapfly.
+config = configparser.ConfigParser()
+config.read('cf.ini')
+
+# To try and avoid indeed blocking our request, using Scrapfly.
+client = ScrapflyClient(key=config['SCRAPFLY']['API_KEY'])
+
 # The main search window.
 class Window(QMainWindow):
-    
-
     def __init__(self):
         super().__init__()        
         
@@ -76,18 +84,15 @@ class Window(QMainWindow):
         jobEntry = self.jobBox.text()
         cityEntry = self.cityBox.text()
 
-        # Check for entry into job keyword and city entry.
-        if jobEntry == "" or cityEntry == "":
+        # Check for entry into job keyword.
+        if jobEntry == "":
             msg = QMessageBox()
-            msg.setWindowTitle("Missing entries.")
-            msg.setText("Please enter a city and job keyword.")
+            msg.setWindowTitle("Missing entry.")
+            msg.setText("Please enter a job keyword.")
             msg.exec_()
         else:
             stateEntry = self.combo.currentText()
             jobTerms = jobEntry.split()
-
-            print(len(jobTerms))
-            print(jobTerms[1])
 
             # Base url for indeed. Need to parse out the job entry before appending to url string.
             indeedUrl = "https://www.indeed.com/jobs?q=" + jobTerms[0]
@@ -98,9 +103,13 @@ class Window(QMainWindow):
             # Appending final params for city and state before making a GET request.
             indeedUrl += "&l=" + cityEntry + "+" + stateEntry
 
-            html = requests.get(indeedUrl)
+            # Using Scrapfly for avoiding blocks against scraping. Testing purposes only.
+            result = client.scrape(ScrapeConfig(
+                url=indeedUrl,
+                asp=True # asp = anti-scraping protection.
+            ))
 
-            print(html.text)
+            print(result.content)
 
             # With the state, city, and job, we can now use BeautifulSoup to grab the data from job sites.
 
